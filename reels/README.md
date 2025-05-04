@@ -4,8 +4,6 @@ A scalable microservice architecture for handling reels functionality with load 
 
 ## Architecture Overview
 
-![Architecture Diagram](https://mermaid.ink/img/pako:eNqNk81OwzAQhF_F2nNIIlJzKkWVEHABceEKh01iNRvW3jqOEFR9d5wfkBalpT51dz7PTLLeTbFOlOZYwJPjh-6Qfh7a8_XH8-D4ql2F1jxZxNaQQx09GnJ-6Mgrb8hhtF9JfKCgNq7S4a6-73r63VgNpNW5fncU-mpKKb2O_fMuUUhGk_FPXyLN2ixFVlUmH7kgJI_Ol9Qs65Xfey8mjDsKBuG_qmYy1d8GJvuaXLn2kP5vZIjz2mL4jdwSZXqXfBQFfUk-iVgdAVKC6V_DfjKBnwZWKIvgGZVkYHJFSV4VfkKr4V5VmDdYnR1HRV5bI1m2BZZFcI61n9EbvWY4eHScZDJuIcWlTSqcJTgbZwWuekw2Iy27Ry6SOJtZgrNkgfvQvSC26WNeLnGxwH3EjHAj-9QLI3J7pRcSe-H0GxZmytc=)
-
 ### Components:
 
 1. **Nginx Load Balancer**
