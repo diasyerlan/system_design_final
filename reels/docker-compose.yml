@@ -1,0 +1,160 @@
+version: '3.8'
+
+services:
+  # Load Balancer
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      - reels-service-1
+      - reels-service-2
+      - cdn-service
+    networks:
+      - frontend-network
+
+  # CDN Service
+  cdn-service:
+    build:
+      context: ./cdn-service
+    volumes:
+      - cdn-data:/app/public
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - CACHE_TTL=86400
+      - REDIS_URI=redis://redis:6379
+      - STORAGE_PATH=/app/public
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis
+    networks:
+      - frontend-network
+      - backend-network
+
+  # Reels Microservice Instances
+  reels-service-1:
+    build:
+      context: ./reels-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - PGBOUNCER_URI=postgres://postgres:postgres@pgbouncer:6432/reelsdb
+      - REDIS_URI=redis://redis:6379
+      - SERVICE_ID=1
+    depends_on:
+      - pgbouncer
+      - redis
+    networks:
+      - frontend-network
+      - backend-network
+
+  reels-service-2:
+    build:
+      context: ./reels-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - PGBOUNCER_URI=postgres://postgres:postgres@pgbouncer:6432/reelsdb
+      - REDIS_URI=redis://redis:6379
+      - SERVICE_ID=2
+    depends_on:
+      - pgbouncer
+      - redis
+    networks:
+      - frontend-network
+      - backend-network
+
+  # WebSocket Sharding Instances
+  ws-shard-1:
+    build:
+      context: ./ws-service
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - REDIS_URI=redis://redis:6379
+      - SHARD_ID=1
+    depends_on:
+      - redis
+    networks:
+      - frontend-network
+      - backend-network
+
+  ws-shard-2:
+    build:
+      context: ./ws-service
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - REDIS_URI=redis://redis:6379
+      - SHARD_ID=2
+    depends_on:
+      - redis
+    networks:
+      - frontend-network
+      - backend-network
+
+  # PostgreSQL Primary
+  postgres-primary:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: reelsdb
+    volumes:
+      - postgres-primary-data:/var/lib/postgresql/data
+      - ./postgres/primary:/docker-entrypoint-initdb.d
+    networks:
+      - backend-network
+
+  # PostgreSQL Replica
+  postgres-replica:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: reelsdb
+    volumes:
+      - postgres-replica-data:/var/lib/postgresql/data
+      - ./postgres/replica:/docker-entrypoint-initdb.d
+    depends_on:
+      - postgres-primary
+    networks:
+      - backend-network
+
+  # PgBouncer - Connection Pooling
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    environment:
+      - DB_HOST=postgres-primary
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=1000
+      - DEFAULT_POOL_SIZE=20
+    depends_on:
+      - postgres-primary
+      - postgres-replica
+    networks:
+      - backend-network
+
+  # Redis for WebSocket pub/sub and caching
+  redis:
+    image: redis:alpine
+    networks:
+      - backend-network
+
+networks:
+  frontend-network:
+  backend-network:
+
+volumes:
+  postgres-primary-data:
+  postgres-replica-data:
+  cdn-data: 
